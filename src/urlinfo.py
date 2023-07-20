@@ -1,3 +1,4 @@
+"""URLInfo Class"""
 import sys
 import os
 from datetime import datetime
@@ -10,13 +11,20 @@ load_dotenv()
 
 
 class URLInfo:
+    """
+    Takes a url and allows the generation of reports from VirusTotal 
+        and URLHaus indicating whether or not the url is malicious.
+    """
+
     def __init__(self, url: str, api_key: Optional[str] = None) -> None:
         """
-        Takes a url and allows the generation of reports from VirusTotal and URLHaus indicating whether or not the url is malicious.
-
+        Takes a url and allows the generation of reports from VirusTotal 
+            and URLHaus indicating whether or not the url is malicious.
+        
         Args:
             url (str): The url to scan.
-            api_key (str, optional): The VirusTotal API key. Defaults to None. If None, VirusTotal reports will not be generated.
+            api_key (str, optional): The VirusTotal API key. Defaults to None. 
+                If None, VirusTotal reports will not be generated.
         """
 
         self.url = url
@@ -25,7 +33,8 @@ class URLInfo:
 
     def _encode_base64(self, url: str) -> str:
         """
-        Per VirusTotal API documentation, the url must be base64 encoded and stripped of trailing '=' characters.
+        Per VirusTotal API documentation, the url must be base64 encoded 
+            and stripped of trailing '=' characters.
         """
         return base64.urlsafe_b64encode(url.encode()).decode().strip("=")
 
@@ -51,7 +60,9 @@ class URLInfo:
         }
 
         res = requests.get(
-            f"https://www.virustotal.com/api/v3/urls/{url}", headers=headers
+            f"https://www.virustotal.com/api/v3/urls/{url}", 
+            headers=headers,
+            timeout=30
         )
 
         # TODO: Error handling
@@ -62,7 +73,8 @@ class URLInfo:
 
     def _check_report(self, report: Optional[str]) -> str:
         """
-        Helper function that checks the report str for any malicious keywords and highlights them in red.
+        Helper function that checks the report str for any malicious keywords 
+            and highlights them in red.
         """
 
         bad_words = ["malware", "severity", "infection"]
@@ -85,7 +97,8 @@ class URLInfo:
     def get_vt_report(self) -> str:
         """
         Generates the VirusTotal report for the url and checks it for malicious keywords.
-        It will first get the JSON report, remove some unnecessary fields, then generate the report string.
+        It will first get the JSON report, remove some unnecessary fields, 
+            then generate the report string.
 
         Returns:
             (str): The VirusTotal report that can be printable to the console.
@@ -115,8 +128,9 @@ class URLInfo:
         del new_report["url"]
         del new_report["last_final_url"]
 
-        # Sets the url to the final url returned by the report. Good for redirects. 
-        # Since the URLHaus report is called after this report, it makes the following report more accurate. 
+        # Sets the url to the final url returned by the report. Good for redirects.
+        # Since the URLHaus report is called after this report,
+        #   it makes the following report more accurate.
         self.url = final_url
 
         printed_report = self.gen_print_report(new_report, "")
@@ -126,10 +140,12 @@ class URLInfo:
         return checked_report
 
     # TODO: Refactor to urlparse
-    def _check_url_and_print(func: callable) -> callable:
+    def _check_url_and_print(self, func: callable) -> callable:
         """
-        Wrapper function that takes an instance of get_urlhaus_report and checks the url for http or https.
-        If http or https are not present, it attempts to run the function with both prepended to the url and returns the result formatted for printing.
+        Wrapper function that takes an instance of get_urlhaus_report 
+            and checks the url for http or https.
+        If http or https are not present, it attempts to run the function with both prepended 
+            to the url and returns the result formatted for printing.
         """
 
         def wrapper(self, url: str) -> str:
@@ -160,6 +176,7 @@ class URLInfo:
             "https://urlhaus-api.abuse.ch/v1/url/",
             headers={"Accept": "application/json"},
             data={"url": url},
+            timeout=30
         )
 
         res = res.json()
@@ -170,15 +187,18 @@ class URLInfo:
         else:
             return None
 
-    def get_reports(self, vt: bool = True, uh: bool = True) -> str:
+    def get_reports(self, virus_total: bool = True, u_haus: bool = True) -> str:
         """
         Attempts to generate reports for VirusTotal and/or URLHaus.
-        If during the genration of either report, malicious content is detected, the urgent flag is set to True.
-        This flag is used to indicate to the user that the url is malicious and will add an extra warning to the report.
+        If during the genration of either report, malicious content is detected, 
+            the urgent flag is set to True.
+        This flag is used to indicate to the user that the url is malicious 
+            and will add an extra warning to the report.
 
         Args:
-            vt (bool, optional): Whether or not to generate a VirusTotal report. Defaults to True.
-            uh (bool, optional): Whether or not to generate a URLHaus report. Defaults to True.
+            virus_total (bool, optional): Whether or not to generate a VirusTotal report.
+                Defaults to True.
+            u_haus (bool, optional): Whether or not to generate a URLHaus report. Defaults to True.
 
         Returns:
             (str): The reports that can be printable to the console.
@@ -186,17 +206,17 @@ class URLInfo:
 
         reports = ""
 
-        if vt and self.api_key:
+        if virus_total and self.api_key:
             reports += self.get_vt_report()
 
-        if uh:
+        if u_haus:
             reports += self.get_urlhaus_report(self.url)
 
         if self.urgent:
             reports = (
                 "\n\033[41;1mWARNING: Malicious content detected!\033[0m\n" + reports
             )
-        
+
         return reports
 
     def _get_timestamp(self, num: int) -> str:
@@ -214,23 +234,27 @@ class URLInfo:
     ) -> str:
         """
         Recursive function to generate the printable report string.
-        The initial report will always be a dict. Any nested items are handled depending on the type.
+        The initial report will always be a dict.
+            Any nested items are handled depending on the type.
         Generally when a nested item is a dict or list, it will be prepended with a tab.
 
         Args:
             report (Union[dict, list, str, None]): The report to generate.
             string (str): The current report string.
-            title (str, optional): The title of the section. Generally used if a dict or list has nested items which will have an extra tab over. Defaults to None.
+            title (str, optional): The title of the section. 
+                Generally used if a dict or list has nested items which will have an extra tab over. 
+                Defaults to None.
             tabs (int, optional): The number of tabs to prepend to the string. Defaults to 0.
         
         Returns:
             (str): The report string.
         """
 
-        # Creates tab string based on the number of tabs the function was called with to prepend to the string based on level of nesting.
+        # Creates tab string based on the number of tabs the function was called with 
+        #   to prepend to the string based on level of nesting.
         tab_str = "\t" * tabs
 
-        if type(report) is dict:
+        if isinstance(report, dict):
             string += f"\n{title}:" if title else ""
 
             for key, value in report.items():
@@ -241,23 +265,23 @@ class URLInfo:
                     string += f"\n{tab_str}{title_str}: null"
 
                 # Handles unix timestamps, more specifically for VirusTotal reports
-                elif type(value) is int and "date" in key:
+                elif isinstance(value, int) and "date" in key:
                     string += f"\n{tab_str}{title_str}: {self._get_timestamp(value)}"
 
-                elif type(value) is str or type(value) is int:
+                elif isinstance(value, (str, int)):
                     string += f"\n{tab_str}{title_str}: {value}"
 
                 # Handles nested dicts and lists and adds one tab to the string
                 else:
                     string = self.gen_print_report(value, string, title_str, tabs + 1)
 
-        elif type(report) is list:
+        elif isinstance(report, list):
             string += f"\n{title}:" if title else ""
 
             for item in report:
                 # Adds an extra line break specifically if the item is a string.
                 # Nested dicts or lists will have their own line break added by the recursive call.
-                if type(item) is str:
+                if isinstance(item, str):
                     next_str = string + "\n"
                 else:
                     next_str = string
@@ -273,9 +297,11 @@ class URLInfo:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        exit("Please provide a URL to scan.")
+        sys.exit("Please provide a URL to scan.")
 
-    api_key = os.environ.get("VIRUSTOTAL_API_KEY")
+    url_report = URLInfo(
+        sys.argv[1],
+        os.environ.get("VIRUSTOTAL_API_KEY"),
+    ).get_reports()
 
-    res = URLInfo(sys.argv[1], api_key).get_reports()
-    print(res)
+    print(url_report)
