@@ -1,5 +1,6 @@
 .env
 config.ini
+__pycache__
 
 dist/
 build/
