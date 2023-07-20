@@ -140,7 +140,7 @@ class URLInfo:
         return checked_report
 
     # TODO: Refactor to urlparse
-    def _check_url_and_print(self, func: callable) -> callable:
+    def _check_url_and_print(func: callable) -> callable:
         """
         Wrapper function that takes an instance of get_urlhaus_report 
             and checks the url for http or https.
@@ -159,6 +159,7 @@ class URLInfo:
             return report_string
 
         return wrapper
+
 
     @_check_url_and_print
     def get_urlhaus_report(self, url: str) -> Optional[dict]:
