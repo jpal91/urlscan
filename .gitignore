@@ -1,5 +1,6 @@
 .env
 config.ini
+_[a-z]*
 __pycache__
 
 dist/
