@@ -46,7 +46,7 @@ class URLInfo:
                     )
                     self.urgent = True
 
-        report_string = f"\n\033[1mVirusTotal Report:\033[0m\n{report}\n"
+        report_string = f"\n\033[94;1mVirusTotal Report:\033[0m\n{report}\n"
 
         return report_string
 
@@ -108,7 +108,7 @@ class URLInfo:
                 res = func(self, url)
             
             printed_report = self.gen_report(res, "")
-            report_string = f"\n\033[1mURLHaus Report:\033[0m\n{printed_report}\n"
+            report_string = f"\n\033[94;1mURLHaus Report:\033[0m\n{printed_report}\n"
             return report_string
         return wrapper
 
