@@ -27,7 +27,8 @@ class URLInfo:
             f"https://www.virustotal.com/api/v3/urls/{url}", headers=self.vt_headers
         )
         
-        if res.status_code == 404:
+        # TODO: Error handling
+        if res.status_code != 200:
             return None
         
         return res.json()["data"]["attributes"]
