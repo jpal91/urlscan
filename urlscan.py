@@ -22,10 +22,6 @@ class URLInfo:
         self.url = url
         self.urgent = None
         self.api_key = api_key
-        self.vt_headers = {
-            "x-apikey": api_key,
-            "accept": "application/json",
-        }
 
     def _encode_base64(self, url: str) -> str:
         """
@@ -44,10 +40,18 @@ class URLInfo:
             (dict or None): The raw VirusTotal report or None if the url is not found.
         """
 
+        if not self.api_key:
+            raise Exception("No VirusTotal API key provided.")
+
         url = self._encode_base64(raw_url)
 
+        headers = {
+            "x-apikey": self.api_key,
+            "accept": "application/json",
+        }
+
         res = requests.get(
-            f"https://www.virustotal.com/api/v3/urls/{url}", headers=self.vt_headers
+            f"https://www.virustotal.com/api/v3/urls/{url}", headers=headers
         )
 
         # TODO: Error handling
@@ -110,6 +114,9 @@ class URLInfo:
         new_report = {"original_url": url, "final_url": final_url, **report}
         del new_report["url"]
         del new_report["last_final_url"]
+
+        # Sets the url to the final url returned by the report. Good for redirects. 
+        # Since the URLHaus report is called after this report, it makes the following report more accurate. 
         self.url = final_url
 
         printed_report = self.gen_print_report(new_report, "")
