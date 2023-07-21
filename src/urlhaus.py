@@ -35,6 +35,7 @@ class URLHaus(BaseReport):
     def get_json_reports(self, urls: list) -> Optional[dict]:
         """
         Runs the urls through URLHaus to check if they are malicious.
+        Breaks if a url is found to be malicious or no results are found.
 
         Args:
             urls (list): The urls to scan.
@@ -51,8 +52,20 @@ class URLHaus(BaseReport):
             break
     
     def _get_report_str(self, url: str) -> Optional[dict]:
+        """
+        Validates the url and returns the URLHaus report for the url.
+
+        Args:
+            url (str): The url to scan.
+        
+        Returns:
+            (dict or None): The URLHaus report or None if the url is not found.
+        """
         target = self.validate_url(url, both=True)
 
+        # validate_url could return a list of urls if the url doesn't have a scheme
+        #  and both=True. If this is the case, we want to scan both urls.
+        #  ie google.com -> ["http://google.com", "https://google.com"]
         if isinstance(target, list):
             return self.get_json_reports(target)
         
@@ -61,12 +74,15 @@ class URLHaus(BaseReport):
     def get_report(self, target: Union[str, list], prev_report: Optional[str] = None) -> str:
         """
         Generates the URLHaus report for a given url or list of urls.
+        When a VirusTotal report is generated alongside this report,
+            there could be multiple URLs to scan, especially if there are redirects.
 
         Args:
             target (Union[str, list]): The url or list of urls to scan.
+            prev_report (Optional[str], optional): The VirusTotal report. Defaults to None.
 
         Returns:
-            (str): The URLHaus report.
+            (str): The URLHaus (or VirusTotal + URLHaus, if applicable) report.
         """
 
         if isinstance(target, str):
@@ -80,9 +96,6 @@ class URLHaus(BaseReport):
         report = self.finalize_report(self.gen_print_report(report, ''), 'URLHaus')
 
         if prev_report:
-            # if self.urgent:
-            #     return prev_report + report
-            # else:
-                return self.mark_urgent(prev_report + report)
+            return self.mark_urgent(prev_report + report)
 
         return self.mark_urgent(report)

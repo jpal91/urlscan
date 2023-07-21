@@ -11,7 +11,23 @@ class BaseReport:
         self.urgent = False
 
     def validate_url(self, url: str, both: bool = False) -> Union[list, str]:
-        """Validates the url and returns the domain"""
+        """
+        Validates the url and returns the full url, potential urls, or raises error.
+        If a url can possibily be valid, it can return both http and https versions of the url.
+        
+        Args:
+            url (str): The url to validate.
+            both (bool, optional): Whether to return both http and https versions of the url. Defaults to False.
+        
+        Returns:
+            (list or str): The validated url(s).
+        
+        Examples:
+            google.com (possibly valid -> Returns list if both=True else str) -> 
+                ["http://google.com", "https://google.com"] or "http://google.com"
+            https://google.com (valid -> Returns str) -> 'https://google.com'
+            ftp://google.com (invalid -> Raises ValueError)
+        """
         parsed_url = urlparse(url)
         
         if parsed_url.scheme in ["http", "https"]:
