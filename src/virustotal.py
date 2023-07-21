@@ -1,13 +1,13 @@
 
 import base64
 import requests
-from src import Printer
+from src import BaseReport
 
-class VirusTotal(Printer):
+class VirusTotal(BaseReport):
 
     def __init__(self, url: str, api_key: str):
         super().__init__()
-        self.url = url
+        self.url = self.validate_url(url)
         self.headers = {
             'x-apikey': api_key,
             'accept': 'application/json'
@@ -43,8 +43,23 @@ class VirusTotal(Printer):
             return None
 
         return res.json()['data']['attributes']
+    
+    def check_report(self, report: str) -> None:
+        """
+        Helper function that checks the report str for any malicious keywords 
+            and marks the report as urgent if any are found.
+        """
 
-    def get_vt_report(self) -> str:
+        bad_words = ["malware", "severity", "infection"]
+
+
+        for word in bad_words:
+            if word in report or word.capitalize() in report:
+                self.urgent = True
+            
+        return
+
+    def get_report(self) -> str:
         """
         Generates the VirusTotal report for the url and checks it for malicious keywords.
         It will first get the JSON report, remove some unnecessary fields, 
@@ -54,8 +69,8 @@ class VirusTotal(Printer):
             (str): The VirusTotal report that can be printable to the console.
         """
 
-        report = self.get_json_report(self.url)
-        if not report:
+        self.report = self.get_json_report(self.url)
+        if not self.report:
             return self.finalize_report(None, 'VirusTotal')
 
         del_list = [
@@ -69,22 +84,26 @@ class VirusTotal(Printer):
         ]
 
         for d_item in del_list:
-            if d_item in report:
-                del report[d_item]
+            if d_item in self.report:
+                del self.report[d_item]
 
         # An extra step to make sure the urls are at the top of the printed report.
-        url, final_url = report["url"], report["last_final_url"]
-        new_report = {"original_url": url, "final_url": final_url, **report}
+        url, final_url = self.report["url"], self.report["last_final_url"]
+        new_report = {"original_url": url, "final_url": final_url, **self.report}
         del new_report["url"]
         del new_report["last_final_url"]
 
-        # Sets the url to the final url returned by the report. Good for redirects.
-        # Since the URLHaus report is called after this report,
-        #   it makes the following report more accurate.
-        self.url = final_url
-
         printed_report = self.gen_print_report(new_report, "")
 
-        checked_report = self._check_report(printed_report)
+        return self.finalize_report(printed_report, 'VirusTotal')
+    
+    def finalize_report(self, report: str, *args) -> str:
+        finalize = super().finalize_report
 
-        return checked_report
+        if not report:
+            return finalize(None, *args)
+        
+        self.check_report(report)
+        report = finalize(report, *args)
+        return self.mark_urgent(report)
+

@@ -1,3 +1,3 @@
-# from . import urlinfo
-from src.urlinfo import URLInfo
-from src.printer import Printer
+from src.base import BaseReport
+from src.virustotal import VirusTotal
+from src.urlhaus import URLHaus

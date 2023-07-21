@@ -1,13 +1,29 @@
-"""Printer class"""
+"""BaseReport class"""
+from urllib.parse import urlparse
+from typing import Union
 from datetime import datetime
 from typing import Union, Optional
 
-class Printer:
+class BaseReport:
     """Base class for other report classes"""
 
     def __init__(self):
         self.urgent = False
 
+    def validate_url(self, url: str, both: bool = False) -> Union[list, str]:
+        """Validates the url and returns the domain"""
+        parsed_url = urlparse(url)
+        
+        if parsed_url.scheme in ["http", "https"]:
+            return url
+
+        if not parsed_url.scheme:
+            if both:
+                return [f"http://{url}", f"https://{url}"]
+            return "http://" + url
+        else:
+            raise ValueError("Invalid url")
+        
     def get_timestamp(self, time_int: int) -> str:
         """
         VirusTotal returns timestamps as unix timestamps. Helper function to convert.
@@ -72,6 +88,10 @@ class Printer:
                     string += f"\n{tab_str}{title_str}: {value}"
 
                 # Handles nested dicts and lists and adds one tab to the string
+                # If nested dict, adds the current tab string to title as well
+                #   to keep the title on the same level as the nested items.
+                elif isinstance(value, dict):
+                    string = self.gen_print_report(value, string, tab_str + title_str, tabs + 1)
                 else:
                     string = self.gen_print_report(value, string, title_str, tabs + 1)
 
